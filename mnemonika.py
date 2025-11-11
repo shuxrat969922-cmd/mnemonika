@@ -1,4 +1,4 @@
-Railwayda telegram botimni ishlatmoqchiman. Starter varianti bormi? Kichkina botim bor shuni ishlatib qo'ymoqchiman. import asyncio
+import asyncio
 from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart
