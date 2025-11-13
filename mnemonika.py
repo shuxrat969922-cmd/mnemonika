@@ -85,11 +85,10 @@ async def approve_payment(callback: types.CallbackQuery):
 
     user_id = int(callback.data.split("_")[1])
 
-    # 🔗 Havola: 1 marta ishlaydi va 60 daqiqadan so‘ng eskiradi
+    # 🔗 To‘g‘ridan-to‘g‘ri kanalga kirish havolasi (1 kishi uchun, 1 soat amal qiladi)
     invite_link = await bot.create_chat_invite_link(
         chat_id=CHANNEL_ID,
         name=f"Obuna kirish - {user_id}",
-        creates_join_request=True,
         expire_date=datetime.now() + timedelta(hours=1),
         member_limit=1
     )
@@ -108,8 +107,7 @@ async def approve_payment(callback: types.CallbackQuery):
         reply_markup=keyboard
     )
 
-    await callback.message.answer(f"✅ Foydalanuvchi {user_id} uchun maxsus link yaratildi.")
-
+    await callback.message.answer(f"✅ Foydalanuvchi {user_id} uchun to‘g‘ridan-to‘g‘ri kirish havolasi yaratildi.")
 
 # 🚪 Kanalga qo‘shilish so‘rovi
 @dp.chat_join_request()
