@@ -6,6 +6,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import os
 
+# 🔐 Muhim o‘zgaruvchilar
 API_TOKEN = os.getenv("TELEGRAM_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID", 0))
 CHANNEL_ID = int(os.getenv("CHANNEL_ID", 0))
@@ -13,8 +14,10 @@ CHANNEL_ID = int(os.getenv("CHANNEL_ID", 0))
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
 
-users = {}
+users = {}  # foydalanuvchi ma’lumotlarini saqlash uchun
 
+
+# 🎬 /start buyrug‘i
 @dp.message(CommandStart())
 async def start(message: types.Message):
     builder = InlineKeyboardBuilder()
@@ -40,14 +43,17 @@ async def start(message: types.Message):
     await message.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
 
+# 📎 Chek yuborish
 @dp.message(F.photo | F.document)
 async def receive_check(message: types.Message):
     builder = InlineKeyboardBuilder()
     builder.button(text="📤 Yuborilsinmi?", callback_data="send_check")
+
     users[message.from_user.id] = {"check": message}
     await message.answer("Chekni yuborishni tasdiqlaysizmi?", reply_markup=builder.as_markup())
 
 
+# 📤 Chekni admin’ga yuborish
 @dp.callback_query(F.data == "send_check")
 async def send_check(callback: types.CallbackQuery):
     user_id = callback.from_user.id
@@ -56,7 +62,7 @@ async def send_check(callback: types.CallbackQuery):
         return
 
     msg = users[user_id]["check"]
-    caption = f"💰 Yangi to‘lov:\n👤 @{callback.from_user.username or callback.from_user.full_name}\nID: {user_id}"
+    caption = f"💰 Yangi to‘lov:\n👤 @{callback.from_user.username or callback.from_user.full_name}\n🆔 ID: {user_id}"
 
     builder = InlineKeyboardBuilder()
     builder.button(text="✅ Tasdiqlash", callback_data=f"approve_{user_id}")
@@ -70,6 +76,7 @@ async def send_check(callback: types.CallbackQuery):
     )
 
 
+# ✅ Admin to‘lovni tasdiqlaydi
 @dp.callback_query(F.data.startswith("approve_"))
 async def approve_payment(callback: types.CallbackQuery):
     if callback.from_user.id != ADMIN_ID:
@@ -78,21 +85,33 @@ async def approve_payment(callback: types.CallbackQuery):
 
     user_id = int(callback.data.split("_")[1])
 
+    # 🔗 Havola: 1 marta ishlaydi va 60 daqiqadan so‘ng eskiradi
     invite_link = await bot.create_chat_invite_link(
         chat_id=CHANNEL_ID,
-        name="Obuna kirish",
+        name=f"Obuna kirish - {user_id}",
         creates_join_request=True,
-        expire_date=datetime.now() + timedelta(minutes=10)
+        expire_date=datetime.now() + timedelta(hours=1),
+        member_limit=1
     )
 
     keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text="🔗 Kanalga kirish", url=invite_link.invite_link)]]
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🔗 Kanalga kirish", url=invite_link.invite_link)]
+        ]
     )
 
-    await bot.send_message(user_id, "🎉 To‘lov tasdiqlandi!", reply_markup=keyboard)
-    await callback.message.answer("✅ Foydalanuvchi tasdiqlandi!")
+    await bot.send_message(
+        user_id,
+        "🎉 To‘lov tasdiqlandi!\n\n"
+        "👇 Quyidagi havola orqali kanalga kiring.\n"
+        "⚠️ Havola faqat 1 kishi uchun va 60 daqiqa amal qiladi:",
+        reply_markup=keyboard
+    )
+
+    await callback.message.answer(f"✅ Foydalanuvchi {user_id} uchun maxsus link yaratildi.")
 
 
+# 🚪 Kanalga qo‘shilish so‘rovi
 @dp.chat_join_request()
 async def approve_join_request(update: types.ChatJoinRequest):
     user_id = update.from_user.id
@@ -103,6 +122,7 @@ async def approve_join_request(update: types.ChatJoinRequest):
         await bot.decline_chat_join_request(update.chat.id, user_id)
 
 
+# 🚀 Botni ishga tushirish
 async def main():
     print("✅ Bot pollingda ishlayapti...")
     await dp.start_polling(bot)
